@@ -28,9 +28,11 @@ def number_of_each_health_care_worker(sheet, row_num)
   fulltime_doctor_num = 0
   fulltime_pharmacist_num = 0
   fulltime_dentist_num = 0
+  fulltime_other_num = 0
   parttime_doctor_num = 0
   parttime_pharmacist_num = 0
   parttime_dentist_num = 0
+  parttime_other_num = 0
 
   index = 1
   loop do
@@ -42,10 +44,12 @@ def number_of_each_health_care_worker(sheet, row_num)
       loop do
         worker = sheet.cell(row_num + index + index2, 'E')
         break if worker.nil? || worker.match(/非常勤/)
-        if worker.match(/\(医/)
-          fulltime_doctor_num = worker.split.last.sub(')', '')
-        elsif worker.match(/\(薬/)
-          fulltime_pharmacist_num = worker.split.last.sub(')', '')
+        type, num = worker.sub('(', '').sub(')', '').split
+        case type
+        when /\A医/ then fulltime_doctor_num = num
+        when /\A薬/ then fulltime_pharmacist_num = num
+        when /\A歯/ then fulltime_dentist_num = num
+        else             fulltime_other_num = num
         end
         index2 += 1
       end
@@ -54,10 +58,12 @@ def number_of_each_health_care_worker(sheet, row_num)
       loop do
         worker = sheet.cell(row_num + index + index2, 'E')
         break if worker.nil?
-        if worker.match(/\(医/)
-          parttime_doctor_num = worker.split.last.sub(')', '')
-        elsif worker.match(/\(薬/)
-          parttime_pharmacist_num = worker.split.last.sub(')', '')
+        type, num = worker.sub('(', '').sub(')', '').split
+        case type
+        when /\A医/ then parttime_doctor_num = num
+        when /\A薬/ then parttime_pharmacist_num = num
+        when /\A歯/ then parttime_dentist_num = num
+        else             parttime_other_num = num
         end
         index2 += 1
       end
@@ -70,9 +76,11 @@ def number_of_each_health_care_worker(sheet, row_num)
     fulltime_doctor_num,
     fulltime_pharmacist_num,
     fulltime_dentist_num,
+    fulltime_other_num,
     parttime_doctor_num,
     parttime_pharmacist_num,
-    parttime_dentist_num
+    parttime_dentist_num,
+    parttime_other_num,
   ]
 end
 
@@ -86,7 +94,7 @@ def parse_medical_institution(sheet)
       register_started_on = sheet.cell(row_num + 2, 'H')
 
       department, sickbed = department_and_sickbed(sheet, row_num)
-      fulltime_doctor_num, fulltime_pharmacist_num, fulltime_dentist_num, parttime_doctor_num, parttime_pharmacist_num, parttime_dentist_num = number_of_each_health_care_worker(sheet, row_num)
+      fulltime_doctor_num, fulltime_pharmacist_num, fulltime_dentist_num, fulltime_other_num, parttime_doctor_num, parttime_pharmacist_num, parttime_dentist_num, parttime_other_num = number_of_each_health_care_worker(sheet, row_num)
 
       lines << [
         num,
@@ -101,14 +109,16 @@ def parse_medical_institution(sheet)
         register_started_on,
         department,
         sickbed.map { |k, v| "#{k}(#{v})" }.join(' '),
-        fulltime_doctor_num.to_i + fulltime_pharmacist_num.to_i + fulltime_dentist_num.to_i,
+        fulltime_doctor_num.to_i + fulltime_pharmacist_num.to_i + fulltime_dentist_num.to_i + fulltime_other_num.to_i,
         fulltime_doctor_num,
         fulltime_pharmacist_num,
         fulltime_dentist_num,
-        parttime_doctor_num.to_i + parttime_pharmacist_num.to_i + parttime_dentist_num.to_i,
+        fulltime_other_num,
+        parttime_doctor_num.to_i + parttime_pharmacist_num.to_i + parttime_dentist_num.to_i + parttime_other_num.to_i,
         parttime_doctor_num,
         parttime_pharmacist_num,
         parttime_dentist_num,
+        parttime_other_num,
         note,
       ].join(SEPARATOR)
     end
@@ -141,10 +151,12 @@ HEADER = %w(
   常勤(医)
   常勤(薬)
   常勤(歯)
+  常勤(その他)
   非常勤
   非常勤(医)
   非常勤(薬)
   常勤勤(歯)
+  常勤勤(その他)
   備考
 )
 
