@@ -19,8 +19,13 @@ class ExcelParser
 
   def department_and_sickbed(row_num)
     departments = []
-    sickbed = {}
-
+    # sickbed = {}
+    general_sickbed_num = 0
+    care_sickbed_num = 0
+    mental_sickbed_num = 0
+    tuberculosis_sickbed_num = 0
+    other_sickbed_num = 0
+    department = ""
     index = 0
     loop do
       tmp_department = @sheet.cell(row_num + index, 'I')
@@ -28,14 +33,33 @@ class ExcelParser
 
       tmp_department_array = tmp_department.split
       if tmp_department_array.size == 2 && tmp_department_array.last.match(NUMBER_REGEXP)
-        sickbed[tmp_department_array.first] = tmp_department_array.last
+        # sickbed[tmp_department_array.first] = tmp_department_array.last
+        case tmp_department_array.first
+        when /\A一般/ then
+          general_sickbed_num = tmp_department_array.last
+        when /\A療養/ then
+          care_sickbed_num = tmp_department_array.last
+        when /\A精神/ then
+          mental_sickbed_num = tmp_department_array.last
+        when /\A結核/ then
+          tuberculosis_sickbed_num = tmp_department_array.last
+        else
+          other_sickbed_num = tmp_department_array.last
+        end
       else
         departments << tmp_department
+        # or department << tmp_department.join(` `)
       end
       index += 1
     end
-
-    [departments.join(' '), sickbed]
+    [
+      department = departments.join(' '),
+      general_sickbed_num,
+      care_sickbed_num,
+      mental_sickbed_num,
+      tuberculosis_sickbed_num,
+      other_sickbed_num
+    ]
   end
 
   def number_of_each_health_care_worker(row_num)
@@ -107,7 +131,7 @@ class ExcelParser
         registered_reason = @sheet.cell(row_num + 1, 'H')
         register_started_on = @sheet.cell(row_num + 2, 'H')
 
-        department, sickbed = department_and_sickbed(row_num)
+        department, general_sickbed_num, care_sickbed_num, mental_sickbed_num, tuberculosis_sickbed_num, other_sickbed_num = department_and_sickbed(row_num)
         fulltime_doctor_num, fulltime_pharmacist_num, fulltime_dentist_num, fulltime_other_num, parttime_doctor_num, parttime_pharmacist_num, parttime_dentist_num, parttime_other_num = number_of_each_health_care_worker(row_num)
 
         lines << [
@@ -122,7 +146,13 @@ class ExcelParser
           registered_reason,
           register_started_on,
           department,
-          sickbed.map { |k, v| "#{k}(#{v})" }.join(' '),
+#          sickbed.map { |k, v| "#{k}(#{v})" }.join(' '),
+          general_sickbed_num.to_i + care_sickbed_num.to_i + mental_sickbed_num.to_i + tuberculosis_sickbed_num.to_i + other_sickbed_num.to_i,
+          general_sickbed_num,
+          care_sickbed_num,
+          mental_sickbed_num,
+          tuberculosis_sickbed_num,
+          other_sickbed_num,
           fulltime_doctor_num.to_i + fulltime_pharmacist_num.to_i + fulltime_dentist_num.to_i + fulltime_other_num.to_i,
           fulltime_doctor_num,
           fulltime_pharmacist_num,
@@ -153,7 +183,12 @@ class ExcelParser
     登録理由
     指定期間始
     診療科名
-    病床数
+    病床数(合計)
+    病床数(一般)
+    病床数(療養)
+    病床数(精神)
+    病床数(結核)
+    病床数(その他)
     常勤
     常勤(医)
     常勤(薬)
